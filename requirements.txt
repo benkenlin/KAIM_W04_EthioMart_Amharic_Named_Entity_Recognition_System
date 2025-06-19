@@ -1,0 +1,29 @@
+# Core Libraries for Data Handling and ML
+pandas>=2.0.0
+numpy>=1.24.0
+scikit-learn>=1.2.0 # For evaluation metrics
+
+# Hugging Face Ecosystem (Crucial for LLM Fine-tuning)
+transformers>=4.40.0 # Core library for models and tokenizers
+datasets>=2.19.0    # For loading and managing datasets (especially CoNLL format)
+accelerate>=0.29.0  # For distributed training and mixed precision with Trainer API
+torch>=2.0.0        # PyTorch is the backend for most Hugging Face models (or tensorflow if preferred)
+
+# Telegram Data Ingestion
+telethon>=1.33.0    # For scraping Telegram channels
+
+# OCR (Optical Character Recognition) for Image Data
+Pillow>=10.0.0      # Image processing library (dependency for pytesseract)
+pytesseract>=0.3.10 # Python wrapper for Google's Tesseract-OCR
+# NOTE: Tesseract-OCR engine itself needs to be installed separately on your system
+# For Colab: !apt-get install tesseract-ocr tesseract-ocr-amh
+# For local: Follow instructions on Tesseract's GitHub or via package managers.
+
+# Model Interpretability
+shap>=0.45.0        # SHapley Additive exPlanations
+lime>=0.2.0         # Local Interpretable Model-agnostic Explanations
+
+
+# General Utilities (Often helpful)
+tqdm>=4.60.0        # For progress bars
+openpyxl>=3.0.0     # If you need to read/write .xlsx files (e.g., vendor lists)

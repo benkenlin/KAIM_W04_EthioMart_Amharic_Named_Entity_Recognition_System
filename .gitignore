@@ -2,26 +2,26 @@
 __pycache__/
 *.pyc
 *.ipynb_checkpoints/
-.env/ # If you use a virtual environment
-venv/ # If you use a virtual environment
+.env/
+venv/
+.pytest_cache/
 
 # Ignore data directories (raw data, large processed data, downloaded external data)
 data/raw/
 data/processed/
-data/external/amharic_news_ner_dataset/ # Ignore large external datasets if you don't want them in Git
-# data/labeled/ # UNCOMMENT THIS LINE if your labeled data becomes VERY large and you don't want to version control it all.
-              # For now, keep it commented so you can track your small labeled subset.
+data/external/amharic_news_ner_dataset/ # Can be large, consider if you want to track it
+data/external/shageronlinestore_sample/ # Can be large, consider if you want to track it
+# data/labeled/ # Uncomment if your labeled data becomes VERY large and you don't want to version control it all.
 
 # Ignore downloaded models (can be large)
 models/*
-# Keep the `models/` directory itself, but ignore its contents.
-# Also ignore common model file extensions:
+# Common model file extensions:
 *.bin
 *.safetensors
 *.ckpt
 
 # Ignore sensitive configuration files
-config/api_credentials.ini
+config/.env
 
 # Operating System specific files
 .DS_Store
