@@ -1,0 +1,28 @@
+# Ignore Python specific files
+__pycache__/
+*.pyc
+*.ipynb_checkpoints/
+.env/ # If you use a virtual environment
+venv/ # If you use a virtual environment
+
+# Ignore data directories (raw data, large processed data, downloaded external data)
+data/raw/
+data/processed/
+data/external/amharic_news_ner_dataset/ # Ignore large external datasets if you don't want them in Git
+# data/labeled/ # UNCOMMENT THIS LINE if your labeled data becomes VERY large and you don't want to version control it all.
+              # For now, keep it commented so you can track your small labeled subset.
+
+# Ignore downloaded models (can be large)
+models/*
+# Keep the `models/` directory itself, but ignore its contents.
+# Also ignore common model file extensions:
+*.bin
+*.safetensors
+*.ckpt
+
+# Ignore sensitive configuration files
+config/api_credentials.ini
+
+# Operating System specific files
+.DS_Store
+Thumbs.db
