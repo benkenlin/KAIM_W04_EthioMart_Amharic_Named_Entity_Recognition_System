@@ -5,7 +5,7 @@ The project aims to develop an Amharic NER (Named Entity Recognition) system to 
 This project aims to develop an Amharic Named Entity Recognition (NER) system to extract key business entities (Product, Price, Location, Material, Delivery Fee, Contact Info) from Telegram e-commerce channels in Ethiopia. This will centralize data for EthioMart's platform.
 
 ## Project Structure
-
+`````
 KAIM_W04_EthioMart_Amharic_Named_Entity_Recognition_System/
 ├── data/
 │   ├── raw/
@@ -48,7 +48,7 @@ KAIM_W04_EthioMart_Amharic_Named_Entity_Recognition_System/
 ├── requirements.txt
 ├── README.md
 └── LICENSE
-
+`````
 ### Key Directories Explained:
 
 * **`data/`**: Contains all data related to the project.
@@ -147,7 +147,7 @@ This project is divided into the following objectives:
 
 ## Author
 
-* **[Your Name]** - benkenlin
+* **By Kenesa B.** - benkenlin
 
 ## License
 
@@ -159,5 +159,4 @@ This project is licensed under the MIT License - see the `LICENSE` file for deta
 
 ## Contact
 
-By Kenesa B.
 getkennyo@gmail.com
