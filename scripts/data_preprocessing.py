@@ -5,6 +5,10 @@ import re
 from PIL import Image
 import pytesseract
 import logging
+from langdetect import detect, DetectorFactory # NEW: Import langdetect
+
+# Ensure reproducibility of language detection (optional but good practice)
+DetectorFactory.seed = 0 # NEW: Seed for langdetect
 
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -24,6 +28,11 @@ JSONL_OUTPUT_PROCESSED_FILE = os.path.join(DATA_PROCESSED_DIR, 'processed_messag
 
 os.makedirs(DATA_PROCESSED_DIR, exist_ok=True) # Ensure processed data dir exists
 
+# Path to your Tesseract executable (change if necessary)
+# For Windows, uncomment and set the path if Tesseract is not in your system PATH:
+# pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+
 # --- Amharic Text Normalization Function ---
 def normalize_amharic_text(text):
     if text is None:
@@ -39,9 +48,23 @@ def normalize_amharic_text(text):
     text = re.sub(r'[^\u1200-\u137F\s\w\d\.\,\?\!\:\;\(\)\@\#\%\&\*\-\+\=\/\<\>\'\"\`\~]', '', text)
 
     # Unicode normalization (NFC is generally good for Amharic)
-    text = text.strip().encode('utf-8').decode('utf-8') # Simple NFC-like conversion for common issues
+    # This line below does a simple re-encoding to handle some common unicode issues.
+    # For more robust Amharic normalization, you might need a dedicated library.
+    text = text.strip().encode('utf-8').decode('utf-8') 
 
     return text
+
+# --- NEW: Language Detection Function ---
+def detect_language(text):
+    """Detects the language of the given text."""
+    if not isinstance(text, str) or not text.strip():
+        return "unknown"
+    try:
+        # Minimum text length for detection might be an issue for very short strings
+        return detect(text)
+    except Exception: # Catch any exceptions from langdetect (e.g., text too short or not enough unique words)
+        return "unknown"
+
 
 # --- OCR Function ---
 def perform_ocr(image_path):
@@ -92,59 +115,62 @@ def preprocess_telegram_data():
                 message_data = json.loads(line)
 
                 # Initialize cleaned_text with original message text
-                cleaned_text = normalize_amharic_text(message_data.get('Message', ''))
+                original_message_text = message_data.get('Message', '')
+                cleaned_text = normalize_amharic_text(original_message_text)
                 ocr_text = ""
 
                 # Perform OCR if there's an image associated
                 if message_data.get('Media Type') == 'photo' and message_data.get('Media Path'):
-                    # Reconstruct full path relative to PROJECT_ROOT
-                    # The Media Path stored in CSV is already relative to DATA_RAW_DIR
-                    # so, if it's `images/filename.jpg`, we need to join it from DATA_RAW_DIR.
-                    # No, the scraper saves it as `photos/filename.jpg` directly, which is problematic.
-                    # It should save `data/raw/images/filename.jpg`
-                    # For now, let's assume `message_data['Media Path']` is relative to the `PROJECT_ROOT`
-                    # if scraper saves like `images/filename.jpg`
+                    # The Media Path needs to be correctly resolved.
+                    # Assuming `message_data['Media Path']` is something like `images/filename.jpg`
+                    # or `photos/filename.jpg` relative to `data/raw/`.
+                    # Adjust the path reconstruction based on how your scraper saves it.
                     
-                    # Fix: The scraper's `media_path` is `photos/filename` relative to the *scraper's run directory*.
-                    # To fix this, the scraper should save paths like `data/raw/images/filename`.
-                    # For this `data_preprocessing.py`, let's assume `message_data['Media Path']` is correct and relative to project root or use `os.path.join(DATA_RAW_DIR, message_data['Media Path'])`
+                    # Example: If scraper saves `images/filename.jpg` directly relative to PROJECT_ROOT
+                    # full_image_path = os.path.join(PROJECT_ROOT, message_data['Media Path'])
                     
-                    # Correct path for OCR:
-                    full_image_path = os.path.join(DATA_RAW_DIR, message_data['Media Path'])
-                    # If scraper saved `photos/image.jpg` then it should be `data/raw/photos/image.jpg`
-                    # But our structure uses `data/raw/images/`
-                    # So, if scraper saves 'photos/xyz.jpg', and we want it in 'data/raw/images/xyz.jpg'
-                    # we need to adjust the path here or in scraper.
-                    # Let's assume the scraper already downloads to `data/raw/images/` correctly now based on updated scraper.
-                    # The scraper uses `media_dir = 'photos'` currently. Let's make it `IMAGES_DIR`.
-                    # For current scraper, it writes `photos/filename.jpg` into CSV, so adjust the path here:
-                    
-                    # Fix for scraper's old `media_dir` naming:
-                    if os.path.basename(os.path.dirname(message_data['Media Path'])) == 'photos':
-                         fixed_media_path = os.path.join(IMAGES_DIR, os.path.basename(message_data['Media Path']))
-                    else: # If scraper already produces data/raw/images/ structure
-                         fixed_media_path = os.path.join(PROJECT_ROOT, message_data['Media Path'])
-                    
-                    ocr_text = perform_ocr(fixed_media_path) # Use the fixed path
+                    # Example: If scraper saves `photos/filename.jpg` into CSV, and actual files are in `data/raw/images/`
+                    # This implies a mismatch or a renaming step in scraper's output
+                    # Let's assume the scraper is saving into `data/raw/images/` and the CSV path is relative to `data/raw/`
+                    media_relative_path = message_data['Media Path'] # e.g., 'images/channel_id.jpg'
+                    full_image_path = os.path.join(DATA_RAW_DIR, media_relative_path)
+
+                    ocr_text = perform_ocr(full_image_path)
                     ocr_text = normalize_amharic_text(ocr_text)
+                    
                     if ocr_text:
-                        cleaned_text = f"{cleaned_text} {ocr_text}".strip()
+                        cleaned_text = f"{cleaned_text} {ocr_text}".strip() # Combine text and OCR
 
-                # Document OCR (placeholder)
-                # if message_data.get('Media Type') == 'document' and message_data.get('Media Path'):
-                #     # This would require a library like PyPDF2 or python-docx to extract text
-                #     # from document types like PDF or Word.
-                #     # For now, skipping document OCR unless explicitly implemented.
-                #     pass
+                # NEW: Detect language of the final combined and cleaned text
+                detected_lang = detect_language(cleaned_text)
 
-                message_data['cleaned_text'] = cleaned_text
-                message_data['ocr_text'] = ocr_text # Keep OCR text separate for debugging/analysis
-                processed_messages.append(message_data)
+                processed_message = {
+                    "id": message_data.get('ID'),
+                    "channel_title": message_data.get('Channel Title'),
+                    "channel_username": message_data.get('Channel Username'),
+                    "date": message_data.get('Date'),
+                    "original_text": original_message_text, # Keep original for reference
+                    "ocr_text": ocr_text, # Keep OCR text separate for reference
+                    "text": cleaned_text, # The combined and cleaned text for NER
+                    "media_path": message_data.get('Media Path'), # Original media path from CSV
+                    "media_type": message_data.get('Media Type'),
+                    "views": message_data.get('Views'),
+                    "language": detected_lang # NEW: Add detected language
+                }
+                processed_messages.append(processed_message)
 
             except json.JSONDecodeError as e:
                 logging.error(f"JSON decoding error on line {line_num+1}: {e} - Content: {line.strip()}")
             except Exception as e:
                 logging.error(f"Error processing message on line {line_num+1}: {e}")
+
+    # Optional: Filter for Amharic messages only here if desired
+    # If you only want to process messages that are primarily Amharic for your NER
+    # uncomment the following lines:
+    # original_count = len(processed_messages)
+    # processed_messages = [msg for msg in processed_messages if msg['language'] == 'am']
+    # logging.info(f"Filtered down to {len(processed_messages)} Amharic messages from {original_count} total.")
+
 
     # 3. Save the fully processed data to processed/processed_messages.jsonl
     logging.info(f"Saving processed data to '{JSONL_OUTPUT_PROCESSED_FILE}'...")
